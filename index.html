@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快捷排版网站 —— by shadow</title>
+  <link rel="stylesheet" href="shared/css/common.css">
+  <style>
+    .hero {
+      max-width: 900px;
+      margin: 5rem auto 3rem;
+      padding: 0 1.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .hero-title {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.8rem;
+      line-height: 1.2;
+    }
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      font-weight: 300;
+    }
+    .hero-watermark {
+      display: inline-block;
+      border: 1px solid var(--border-color);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+    }
+    /* 功能卡片网格 */
+    .module-grid {
+      max-width: 1100px;
+      margin: 0 auto 5rem;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    .module-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 200px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .module-card:hover {
+      border-color: #ffffff;
+      transform: translateY(-3px);
+      background: var(--bg-card);
+    }
+    .module-card.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .card-tag {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .card-status {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00ff66;
+    }
+    .status-dot.pending {
+      background: #666;
+    }
+    /* 底部水印声明 */
+    .site-footer {
+      border-top: 1px solid var(--border-color);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 主体介绍 -->
+  <main>
+    <section class="hero">
+      <div class="hero-watermark">QUICK TYPESETTING SUITE</div>
+      <h1 class="hero-title">快捷排版网站</h1>
+      <p class="hero-subtitle">专为文手打造 · 拟真社交交互与短打排版工坊 —— by shadow</p>
+    </section>
+
+    <!-- 工具卡片大厅 -->
+    <section class="module-grid">
+      <!-- 论坛体入口 (主推核心) -->
+      <a href="forum/index.html" class="module-card">
+        <div>
+          <div class="card-tag">MODULE 01</div>
+          <h2 class="card-title">论坛体排版 <span>→</span></h2>
+          <p class="card-desc">模拟经典 BBS、晋江绿江、贴吧与现代论坛。支持抽楼、自定义系统红字、IP属地、黑幕剧透与高清长图导出。</p>
+        </div>
+        <div class="card-status">
+          <span class="status-dot"></span> 可用 (支持脚本与可视化双轨)
+        </div>
+      </a>
+
+      <!-- 手机短信/微信 (后续接入) -->
+      <div class="module-card disabled">
+        <div>
+          <div class="card-tag">MODULE 02</div>
+          <h2 class="card-title">手机信息 & 短信</h2>
+          <p class="card-desc">模拟 iOS 短信、微信对话、撤回提示、转账红包与系统语音条。支持快速角色剧本模式。</p>
+        </div>
+        <div class="card-status">
+          <span class="status-dot pending"></span> 规划中
+        </div>
+      </div>
+
+      <!-- 公式书 (后续接入) -->
+      <div class="module-card disabled">
+        <div>
+          <div class="card-tag">MODULE 03</div>
+          <h2 class="card-title">人物公式书</h2>
+          <p class="card-desc">OC / 同人角色属性档案卡，含六维能力雷达图、人物阵营关系箭头图与保密档案涂黑解密效果。</p>
+        </div>
+        <div class="card-status">
+          <span class="status-dot pending"></span> 规划中
+        </div>
+      </div>
+
+      <!-- 长文排版 (后续接入) -->
+      <div class="module-card disabled">
+        <div>
+          <div class="card-tag">MODULE 04</div>
+          <h2 class="card-title">长文与信件</h2>
+          <p class="card-desc">火漆羊皮纸信件、报纸头条分栏、中世纪公函与典藏书籍排版，适合严肃文学与奇幻长篇。</p>
+        </div>
+        <div class="card-status">
+          <span class="status-dot pending"></span> 规划中
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>快捷排版网站 —— by shadow</p>
+    <p style="margin-top: 0.3rem; opacity: 0.6; font-size: 0.72rem;">纯静态运行 · 本地存储无泄露 · 专为手动打字文手设计</p>
+  </footer>
+
+  <script src="shared/js/nav.js"></script>
+</body>
+</html>

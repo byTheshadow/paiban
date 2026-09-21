@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>论坛体排版器 —— by shadow</title>
+  <link rel="stylesheet" href="../shared/css/common.css">
+  <!-- 引入 Vue 3 CDN (做双向绑定极简丝滑) 与 html2canvas CDN (长图导出) -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    /* 论坛工作台双栏布局 */
+    .workspace {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      height: calc(100vh - 56px);
+      overflow: hidden;
+    }
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+
+    /* 左侧控制与输入台 */
+    .panel-left {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .panel-section {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .section-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 样式微调控制行 */
+    .control-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+    }
+    .control-row label {
+      width: 70px;
+      color: var(--text-muted);
+    }
+    .control-row select, .control-row input[type="text"] {
+      flex: 1;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.35rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .control-row input[type="color"] {
+      border: 1px solid var(--border-color);
+      background: transparent;
+      width: 38px;
+      height: 28px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* 可视化快捷按钮条 */
+    .action-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    /* 源码文本框 */
+    .editor-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      min-height: 320px;
+    }
+    .source-editor {
+      flex: 1;
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      padding: 0.75rem;
+      resize: none;
+      outline: none;
+    }
+    .source-editor:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* 右侧渲染画布 */
+    .panel-right {
+      background: #0d0d0d;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    .preview-header {
+      padding: 0.75rem 1.5rem;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .preview-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* 论坛实体容器 (所见即所得区域) */
+    .forum-container {
+      width: 100%;
+      max-width: 680px;
+      background: #ffffff;
+      color: #222222;
+      border-radius: 6px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      overflow: hidden;
+      height: fit-content;
+    }
+
+    /* 论坛顶头 */
+    .forum-header-bar {
+      padding: 1rem 1.25rem;
+      background: var(--forum-theme, #3385ff);
+      color: #fff;
+    }
+    .forum-board-tag {
+      font-size: 0.75rem;
+      background: rgba(255,255,255,0.22);
+      padding: 0.15rem 0.45rem;
+      border-radius: 3px;
+      display: inline-block;
+      margin-bottom: 0.4rem;
+    }
+    .forum-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    /* 楼层项 */
+    .forum-post {
+      padding: 1.25rem;
+      border-bottom: 1px solid #eeeeee;
+      display: flex;
+      gap: 0.9rem;
+    }
+    .post-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #64748b;
+      font-size: 1rem;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .post-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .post-content-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .post-user-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.45rem;
+      flex-wrap: wrap;
+    }
+    .post-username {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1e293b;
+    }
+    .badge-lz {
+      background: var(--forum-theme, #3385ff);
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+      font-weight: 500;
+    }
+    .badge-custom {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+    }
+    .post-floor {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      font-family: var(--font-mono);
+    }
+    .post-meta-sub {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      margin-bottom: 0.6rem;
+      display: flex;
+      gap: 0.75rem;
+    }
+    .post-body {
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: #334155;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    /* 剧透黑幕 */
+    .spoiler {
+      background: #1e293b;
+      color: #1e293b;
+      padding: 0 0.2rem;
+      border-radius: 2px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .spoiler:hover, .spoiler.revealed {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    /* 引用块 */
+    .quote-box {
+      background: #f8fafc;
+      border-left: 3px solid var(--forum-theme, #3385ff);
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.6rem;
+      font-size: 0.82rem;
+      color: #64748b;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* 楼中楼 */
+    .sub-comments {
+      margin-top: 0.75rem;
+      background: #f8fafc;
+      border-radius: 4px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.82rem;
+    }
+    .sub-item {
+      margin-bottom: 0.35rem;
+      line-height: 1.45;
+    }
+    .sub-user {
+      font-weight: 600;
+      color: #3b82f6;
+    }
+
+    /* 系统提示条 */
+    .forum-sys-notice {
+      padding: 0.75rem 1.25rem;
+      text-align: center;
+      font-size: 0.78rem;
+      background: #f1f5f9;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .forum-sys-notice.warn {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #fee2e2;
+    }
+
+    /* 底部水印声明条 */
+    .forum-watermark-footer {
+      padding: 0.6rem 1rem;
+      text-align: right;
+      font-size: 0.68rem;
+      color: #94a3b8;
+      background: #fcfcfc;
+      border-top: 1px solid #f0f0f0;
+      font-family: var(--font-mono);
+    }
+
+    /* 可视化弹窗 Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      width: 90%;
+      max-width: 480px;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    }
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .form-group {
+      margin-bottom: 0.75rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" class="workspace">
+  <!-- 左侧控制与打字输入面板 -->
+  <aside class="panel-left">
+    <!-- 外观与主题自定义区 -->
+    <div class="panel-section">
+      <div class="section-title">
+        <span>外观与主题定制</span>
+      </div>
+      <div class="control-row">
+        <label>主题色</label>
+        <input type="color" v-model="themeColor">
+        <select @change="themeColor = $event.target.value">
+          <option value="#3385ff">经典贴吧蓝</option>
+          <option value="#4d806a">晋江绿江水</option>
+          <option value="#ea580c">温暖论坛橘</option>
+          <option value="#10b981">赛博暗网绿</option>
+          <option value="#18181b">极简高级黑</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>显示字体</label>
+        <select v-model="selectedFont">
+          <option value="var(--font-sans)">现代黑体 (默认)</option>
+          <option value="var(--font-serif)">复古宋体 (文学感)</option>
+          <option value="Kaiti, STKaiti, 楷体, serif">书卷楷体 (古典韵味)</option>
+          <option value="var(--font-mono)">等宽代码体 (赛博论坛)</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>字号大小</label>
+        <input type="range" min="13" max="18" v-model="fontSize">
+        <span>{{ fontSize }}px</span>
+      </div>
+    </div>
+
+    <!-- 小白友好：可视化快捷插入工具栏 -->
+    <div class="panel-section">
+      <div class="section-title">
+        <span>快捷动作 (点击填空插入)</span>
+      </div>
+      <div class="action-toolbar">
+        <button class="btn btn-primary" @click="openModal('floor')">+ 添加新楼层</button>
+        <button class="btn" @click="openModal('system')">+ 插入系统提示</button>
+        <button class="btn" @click="insertTag('||这里是剧透黑幕||')">黑幕刮刮乐</button>
+        <button class="btn" @click="insertTag('> 引用某某：内容\n')">引用上一楼</button>
+      </div>
+    </div>
+
+    <!-- 硬核文手：脚本打字源码编辑区 -->
+    <div class="editor-container">
+      <div class="section-title">
+        <span>脚本源文本 (支持直接手动输入修改)</span>
+        <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;" @click="resetTemplate">重置模板</button>
+      </div>
+      <textarea
+        ref="sourceTextarea"
+        class="source-editor"
+        v-model="rawScript"
+        placeholder="在这里自由打字或粘贴你的论坛脚本..."
+      ></textarea>
+    </div>
+  </aside>
+
+  <!-- 右侧：所见即所得渲染区 -->
+  <main class="panel-right">
+    <header class="preview-header">
+      <span class="watermark-badge">PREVIEW WORKSPACE · BY SHADOW</span>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-primary" @click="exportImage" :disabled="isExporting">
+          {{ isExporting ? '正在生成长图...' : '📷 导出高清长图' }}
+        </button>
+      </div>
+    </header>
+
+    <div class="preview-scroll">
+      <!-- 论坛整卡主体 (将被 html2canvas 截取) -->
+      <div
+        id="forum-export-target"
+        class="forum-container"
+        :style="{
+          '--forum-theme': themeColor,
+          fontFamily: selectedFont,
+          fontSize: fontSize + 'px'
+        }"
+      >
+        <!-- 论坛帖子头部 -->
+        <div class="forum-header-bar">
+          <span class="forum-board-tag">{{ meta.board || '综合交流区' }}</span>
+          <h1 class="forum-title">{{ meta.title || '无标题帖子' }}</h1>
+        </div>
+
+        <!-- 楼层与系统提示动态渲染列表 -->
+        <div v-for="(item, idx) in parsedItems" :key="idx">
+          <!-- 系统提示条 -->
+          <div v-if="item.type === 'system'" class="forum-sys-notice" :class="item.subType">
+            <span>{{ item.content }}</span>
+          </div>
+
+          <!-- 普通楼层帖子 -->
+          <div v-else-if="item.type === 'floor'" class="forum-post">
+            <div class="post-avatar">
+              <img v-if="item.avatar" :src="item.avatar" alt="avatar">
+              <span v-else>{{ (item.author || '匿')[0] }}</span>
+            </div>
+            <div class="post-content-wrap">
+              <div class="post-user-row">
+                <span class="post-username">{{ item.author || '匿名网友' }}</span>
+                <span v-if="item.isLz" class="badge-lz">楼主</span>
+                <span v-if="item.badge" class="badge-custom">{{ item.badge }}</span>
+                <span class="post-floor">{{ item.floor }}</span>
+              </div>
+              <div class="post-meta-sub">
+                <span v-if="item.ip">IP: {{ item.ip }}</span>
+                <span v-if="item.device">来自 {{ item.device }}</span>
+                <span>{{ item.time || '刚刚' }}</span>
+              </div>
+
+              <!-- 引用块 -->
+              <div v-if="item.quote" class="quote-box">
+                {{ item.quote }}
+              </div>
+
+              <!-- 楼层正文 (包含刮刮乐黑幕解析) -->
+              <div class="post-body" v-html="formatBody(item.body)"></div>
+
+              <!-- 楼中楼小评论 -->
+              <div v-if="item.subComments && item.subComments.length" class="sub-comments">
+                <div v-for="(sub, sIdx) in item.subComments" :key="sIdx" class="sub-item">
+                  <span class="sub-user">{{ sub.user }}：</span>
+                  <span>{{ sub.text }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 论坛底部水印声明 -->
+        <div class="forum-watermark-footer">
+          快捷排版网站 —— by shadow
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 可视化添加楼层弹窗 -->
+  <div v-if="activeModal === 'floor'" class="modal-overlay" @click.self="activeModal = null">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>+ 新增楼层回复</span>
+        <button class="btn" style="padding: 0.2rem 0.4rem;" @click="activeModal = null">✕</button>
+      </div>
+      <div class="form-group">
+        <label>昵称 / 马甲</label>
+        <input type="text" v-model="newFloor.author" placeholder="例如：酸菜鱼 (加 楼主 二字自动变楼主)">
+      </div>
+      <div class="form-group" style="display: flex; gap: 0.5rem;">
+        <div style="flex: 1;">
+          <label>IP 属地 (文手造梗)</label>
+          <input type="text" v-model="newFloor.ip" placeholder="例如：罗马 / 楼主床底">
+        </div>
+        <div style="flex: 1;">
+          <label>自定义徽章 (可选)</label>
+          <input type="text" v-model="newFloor.badge" placeholder="例如：管理员 / 大V">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>正文内容 (支持直接打字)</label>
+        <textarea rows="4" v-model="newFloor.body" placeholder="说点什么吧..."></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn" @click="activeModal = null">取消</button>
+        <button class="btn btn-primary" @click="confirmAddFloor">确认插入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 可视化插入系统提示弹窗 -->
+  <div v-if="activeModal === 'system'" class="modal-overlay" @click.self="activeModal = null">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>+ 插入系统提示 / 管理员红字</span>
+        <button class="btn" style="padding: 0.2rem 0.4rem;" @click="activeModal = null">✕</button>
+      </div>
+      <div class="form-group">
+        <label>提示类型</label>
+        <select v-model="newSys.type">
+          <option value="normal">普通系统提示 (灰色轻量)</option>
+          <option value="warn">管理员警示 (醒目红字)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>提示文字</label>
+        <input type="text" v-model="newSys.content" placeholder="例如：【系统提示：该楼层已被管理员抽除】">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn" @click="activeModal = null">取消</button>
+        <button class="btn btn-primary" @click="confirmAddSys">确认插入</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/js/nav.js"></script>
+<script>
+  const { createApp } = Vue;
+
+  // 默认预设的一段示范小说脚本
+  const DEFAULT_SCRIPT = `---
+board: 树洞情感区
+title: 【求助】我室友好像发现了我的小号，现在装作不知情怎么办？
+---
+
+::: 1L @酸菜鱼(楼主) [IP: 江苏] (来自 网页版)
+如题，事情是这样的……
+我昨天洗完澡出来，看见他正盯着我的电脑屏幕看。
+||其实当时网页正停在吐槽他的那个帖子上||
+
+我现在慌得不行，假装去喝水，他很平静地跟我说了晚安。
+有人救救我吗？他到底看没看到啊？！
+:::
+
+::: 2L @吃瓜第一线 [IP: 广东] (来自 iPhone 16)
+沙发！前排蹲一个后续。
+根据同人经典剧情，他肯定全看见了，现在正在心里憋大招呢哈哈哈哈！
+:::
+
+::: sys(warn)
+【系统提示】本帖热度过高，已自动转入热议榜，请大家理性讨论。
+:::
+
+::: 3L @纯路人 [IP: 北京]
+> 引用 1L @酸菜鱼：我现在慌得不行，假装去喝水……
+直接坦白吧楼主，坦白从宽。
+---
+[sub] @酸菜鱼: 不要啊啊啊！直接坦白会社死的！
+[sub] @纯路人: 那就装傻到底，反正他也装不知道（点蜡）
+:::
+
+::: sys
+【提示】3 楼已被楼主设为神回复
+:::
+`;
+
+  createApp({
+    data() {
+      return {
+        themeColor: '#3385ff',
+        selectedFont: 'var(--font-sans)',
+        fontSize: 14,
+        rawScript: localStorage.getItem('shadow_forum_draft') || DEFAULT_SCRIPT,
+        isExporting: false,
+        activeModal: null,
+        // 表单弹窗临时数据
+        newFloor: { author: '', ip: '本地', badge: '', body: '' },
+        newSys: { type: 'normal', content: '【系统提示：该楼已被封禁】' }
+      }
+    },
+    watch: {
+      rawScript(newVal) {
+        localStorage.setItem('shadow_forum_draft', newVal);
+      }
+    },
+    computed: {
+      // 解析全局 Front-matter 标题和板块
+      meta() {
+        const titleMatch = this.rawScript.match(/title:\s*(.+)/);
+        const boardMatch = this.rawScript.match(/board:\s*(.+)/);
+        return {
+          title: titleMatch ? titleMatch[1].trim() : '论坛帖子',
+          board: boardMatch ? boardMatch[1].trim() : '闲聊讨论'
+        };
+      },
+      // 解析所有楼层与系统提示
+      parsedItems() {
+        const items = [];
+        const blocks = this.rawScript.split(/:::\s*/);
+
+        blocks.forEach(block => {
+          const trimmed = block.trim();
+          if (!trimmed || trimmed.startsWith('---')) return;
+
+          // 匹配系统提示: sys 或 sys(warn)
+          if (trimmed.startsWith('sys')) {
+            const isWarn = trimmed.startsWith('sys(warn)');
+            const lines = trimmed.split('\n');
+            lines.shift(); // 移除首行 sys
+            const content = lines.join('\n').replace(/:::$/, '').trim();
+            items.push({
+              type: 'system',
+              subType: isWarn ? 'warn' : 'normal',
+              content: content
+            });
+            return;
+          }
+
+          // 匹配楼层: 1L @作者 [IP: xx] [Badge: xx] (来自 设备)
+          const firstLineEnd = trimmed.indexOf('\n');
+          const headerLine = firstLineEnd !== -1 ? trimmed.slice(0, firstLineEnd) : trimmed;
+          const bodyContent = firstLineEnd !== -1 ? trimmed.slice(firstLineEnd + 1).replace(/:::$/, '').trim() : '';
+
+          const floorMatch = headerLine.match(/^(\d+L)/);
+          const authorMatch = headerLine.match(/@([^\s\[\(]+)/);
+          const ipMatch = headerLine.match(/\[IP:\s*([^\]]+)\]/);
+          const badgeMatch = headerLine.match(/\[Badge:\s*([^\]]+)\]/);
+          const deviceMatch = headerLine.match(/\(来自\s*([^\)]+)\)/);
+
+          const author = authorMatch ? authorMatch[1] : '匿名网友';
+          const isLz = author.includes('楼主') || (floorMatch && floorMatch[1] === '1L');
+
+          // 处理引用和楼中楼
+          let quote = null;
+          let cleanBody = bodyContent;
+          const subComments = [];
+
+          // 提取引用 >
+          const quoteMatch = cleanBody.match(/^>\s*(.+)\n/);
+          if (quoteMatch) {
+            quote = quoteMatch[1];
+            cleanBody = cleanBody.replace(quoteMatch[0], '');
+          }
+
+          // 提取楼中楼 [sub]
+          const subParts = cleanBody.split(/\[sub\]\s*/);
+          cleanBody = subParts[0].replace(/---\s*$/, '').trim();
+          for (let i = 1; i < subParts.length; i++) {
+            const subLine = subParts[i].trim();
+            const colonIdx = subLine.indexOf(':');
+            if (colonIdx !== -1) {
+              subComments.push({
+                user: subLine.slice(0, colonIdx).replace(/^@/, '').trim(),
+                text: subLine.slice(colonIdx + 1).trim()
+              });
+            }
+          }
+
+          items.push({
+            type: 'floor',
+            floor: floorMatch ? floorMatch[1] : `${items.length + 1}L`,
+            author: author,
+            isLz: isLz,
+            badge: badgeMatch ? badgeMatch[1] : '',
+            ip: ipMatch ? ipMatch[1] : '',
+            device: deviceMatch ? deviceMatch[1] : '',
+            quote: quote,
+            body: cleanBody,
+            subComments: subComments
+          });
+        });
+
+        return items;
+      }
+    },
+    methods: {
+      // 黑幕刮刮乐效果转化
+      formatBody(text) {
+        if (!text) return '';
+        return text.replace(/\|\|(.*?)\|\|/g, '<span class="spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>');
+      },
+      openModal(type) {
+        this.activeModal = type;
+      },
+      // 确认通过弹窗追加楼层代码
+      confirmAddFloor() {
+        const floorNum = (this.parsedItems.filter(i => i.type === 'floor').length + 1) + 'L';
+        const badgeStr = this.newFloor.badge ? ` [Badge: ${this.newFloor.badge}]` : '';
+        const ipStr = this.newFloor.ip ? ` [IP: ${this.newFloor.ip}]` : '';
+
+        const appendScript = `\n::: ${floorNum} @${this.newFloor.author || '网友'}${badgeStr}${ipStr}\n${this.newFloor.body || '……'}\n:::\n`;
+        this.rawScript += appendScript;
+        this.activeModal = null;
+        this.newFloor = { author: '', ip: '本地', badge: '', body: '' };
+      },
+      // 确认通过弹窗追加系统提示
+      confirmAddSys() {
+        const sysTag = this.newSys.type === 'warn' ? 'sys(warn)' : 'sys';
+        const appendScript = `\n::: ${sysTag}\n${this.newSys.content}\n:::\n`;
+        this.rawScript += appendScript;
+        this.activeModal = null;
+      },
+      // 插入指定快捷符号
+      insertTag(tag) {
+        this.rawScript += `\n${tag}`;
+      },
+      resetTemplate() {
+        if (confirm('确认恢复示范默认模板吗？当前编辑的内容将被覆盖。')) {
+          this.rawScript = DEFAULT_SCRIPT;
+        }
+      },
+      // 导出高清长图
+      exportImage() {
+        this.isExporting = true;
+        const target = document.getElementById('forum-export-target');
+
+        html2canvas(target, {
+          scale: 2, // 2倍超清抗锯齿
+          useCORS: true,
+          backgroundColor: null
+        }).then(canvas => {
+          const link = document.createElement('a');
+          link.download = `论坛排版_${Date.now()}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          this.isExporting = false;
+        }).catch(err => {
+          console.error(err);
+          alert('导出失败，请检查浏览器权限');
+          this.isExporting = false;
+        });
+      }
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>
