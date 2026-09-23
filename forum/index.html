@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>论坛体排版器 —— by shadow</title>
   <link rel="stylesheet" href="../shared/css/common.css">
-  <!-- 引入 Vue 3 CDN (做双向绑定极简丝滑) 与 html2canvas CDN (长图导出) -->
   <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     /* 论坛工作台双栏布局 */
     .workspace {
       display: grid;
-      grid-template-columns: 460px 1fr;
+      grid-template-columns: 480px 1fr;
       height: calc(100vh - 56px);
       overflow: hidden;
     }
@@ -134,7 +133,7 @@
       justify-content: center;
     }
 
-    /* 论坛实体容器 (所见即所得区域) */
+    /* 论坛实体容器 */
     .forum-container {
       width: 100%;
       max-width: 680px;
@@ -144,38 +143,48 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
       overflow: hidden;
       height: fit-content;
+      /* 字号基础基准变量，所有子级全部用 em 缩放 */
+      font-size: 14px;
     }
 
     /* 论坛顶头 */
     .forum-header-bar {
-      padding: 1rem 1.25rem;
+      padding: 1.1em 1.3em;
       background: var(--forum-theme, #3385ff);
       color: #fff;
     }
     .forum-board-tag {
-      font-size: 0.75rem;
+      font-size: 0.75em;
       background: rgba(255,255,255,0.22);
-      padding: 0.15rem 0.45rem;
+      padding: 0.2em 0.5em;
       border-radius: 3px;
       display: inline-block;
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.4em;
     }
     .forum-title {
-      font-size: 1.15rem;
+      font-size: 1.3em;
       font-weight: 700;
-      line-height: 1.4;
+      line-height: 1.35;
     }
 
     /* 楼层项 */
     .forum-post {
-      padding: 1.25rem;
+      padding: 1.3em;
       border-bottom: 1px solid #eeeeee;
       display: flex;
-      gap: 0.9rem;
+      gap: 1em;
+      position: relative;
     }
-    .post-avatar {
+    .post-avatar-wrapper {
+      position: relative;
       width: 44px;
       height: 44px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .post-avatar {
+      width: 100%;
+      height: 100%;
       border-radius: 4px;
       background: #e2e8f0;
       display: flex;
@@ -183,8 +192,7 @@
       justify-content: center;
       font-weight: bold;
       color: #64748b;
-      font-size: 1rem;
-      flex-shrink: 0;
+      font-size: 1.1em;
       overflow: hidden;
     }
     .post-avatar img {
@@ -192,6 +200,24 @@
       height: 100%;
       object-fit: cover;
     }
+    /* 鼠标浮动在头像上提示换头像 */
+    .avatar-upload-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65em;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .post-avatar-wrapper:hover .avatar-upload-overlay {
+      opacity: 1;
+    }
+
     .post-content-wrap {
       flex: 1;
       min-width: 0;
@@ -199,20 +225,20 @@
     .post-user-row {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.45rem;
+      gap: 0.5em;
+      margin-bottom: 0.35em;
       flex-wrap: wrap;
     }
     .post-username {
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 1em;
       color: #1e293b;
     }
     .badge-lz {
       background: var(--forum-theme, #3385ff);
       color: #fff;
-      font-size: 0.65rem;
-      padding: 0.1rem 0.35rem;
+      font-size: 0.7em;
+      padding: 0.1em 0.4em;
       border-radius: 2px;
       font-weight: 500;
     }
@@ -220,25 +246,44 @@
       background: #f1f5f9;
       color: #475569;
       border: 1px solid #cbd5e1;
-      font-size: 0.65rem;
-      padding: 0.1rem 0.35rem;
+      font-size: 0.7em;
+      padding: 0.1em 0.4em;
       border-radius: 2px;
     }
-    .post-floor {
+    .post-floor-actions {
       margin-left: auto;
-      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+    .post-floor {
+      font-size: 0.8em;
       color: #94a3b8;
       font-family: var(--font-mono);
     }
+    .btn-quote-inline {
+      background: transparent;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+      font-size: 0.7em;
+      padding: 0.1em 0.4em;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .btn-quote-inline:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
     .post-meta-sub {
-      font-size: 0.72rem;
+      font-size: 0.78em;
       color: #94a3b8;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.7em;
       display: flex;
-      gap: 0.75rem;
+      gap: 0.75em;
     }
     .post-body {
-      font-size: 0.92rem;
+      font-size: 1em; /* 严格跟随外层字号 */
       line-height: 1.65;
       color: #334155;
       word-break: break-word;
@@ -249,7 +294,7 @@
     .spoiler {
       background: #1e293b;
       color: #1e293b;
-      padding: 0 0.2rem;
+      padding: 0 0.25em;
       border-radius: 2px;
       cursor: pointer;
       user-select: none;
@@ -264,58 +309,46 @@
     .quote-box {
       background: #f8fafc;
       border-left: 3px solid var(--forum-theme, #3385ff);
-      padding: 0.5rem 0.75rem;
-      margin-bottom: 0.6rem;
-      font-size: 0.82rem;
+      padding: 0.5em 0.8em;
+      margin-bottom: 0.7em;
+      font-size: 0.88em;
       color: #64748b;
       border-radius: 0 4px 4px 0;
     }
 
     /* 楼中楼 */
     .sub-comments {
-      margin-top: 0.75rem;
+      margin-top: 0.8em;
       background: #f8fafc;
       border-radius: 4px;
-      padding: 0.6rem 0.8rem;
-      font-size: 0.82rem;
+      padding: 0.7em 0.9em;
+      font-size: 0.88em;
     }
     .sub-item {
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.4em;
       line-height: 1.45;
     }
     .sub-user {
       font-weight: 600;
-      color: #3b82f6;
+      color: var(--forum-theme, #3b82f6);
     }
 
     /* 系统提示条 */
     .forum-sys-notice {
-      padding: 0.75rem 1.25rem;
+      padding: 0.8em 1.2em;
       text-align: center;
-      font-size: 0.78rem;
+      font-size: 0.82em;
       background: #f1f5f9;
       color: #64748b;
       border-bottom: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
     }
     .forum-sys-notice.warn {
       background: #fef2f2;
       color: #dc2626;
       border-color: #fee2e2;
-    }
-
-    /* 底部水印声明条 */
-    .forum-watermark-footer {
-      padding: 0.6rem 1rem;
-      text-align: right;
-      font-size: 0.68rem;
-      color: #94a3b8;
-      background: #fcfcfc;
-      border-top: 1px solid #f0f0f0;
-      font-family: var(--font-mono);
     }
 
     /* 可视化弹窗 Modal */
@@ -369,12 +402,21 @@
 <body>
 
 <div id="app" class="workspace">
-  <!-- 左侧控制与打字输入面板 -->
+  <!-- 隐藏的全局文件上传控件 -->
+  <input
+    type="file"
+    ref="avatarFileInput"
+    accept="image/*"
+    style="display: none;"
+    @change="handleAvatarFileSelect"
+  >
+
+  <!-- 左侧控制面板 -->
   <aside class="panel-left">
-    <!-- 外观与主题自定义区 -->
+    <!-- 外观定制区 -->
     <div class="panel-section">
       <div class="section-title">
-        <span>外观与主题定制</span>
+        <span>外观与排版参数</span>
       </div>
       <div class="control-row">
         <label>主题色</label>
@@ -388,50 +430,51 @@
         </select>
       </div>
       <div class="control-row">
-        <label>显示字体</label>
+        <label>字体风格</label>
         <select v-model="selectedFont">
           <option value="var(--font-sans)">现代黑体 (默认)</option>
           <option value="var(--font-serif)">复古宋体 (文学感)</option>
           <option value="Kaiti, STKaiti, 楷体, serif">书卷楷体 (古典韵味)</option>
-          <option value="var(--font-mono)">等宽代码体 (赛博论坛)</option>
+          <option value="var(--font-mono)">等宽代码体 (赛博终端)</option>
         </select>
       </div>
       <div class="control-row">
-        <label>字号大小</label>
-        <input type="range" min="13" max="18" v-model="fontSize">
-        <span>{{ fontSize }}px</span>
+        <label>全局字号</label>
+        <!-- 字号调节滑块：实时生效 -->
+        <input type="range" min="12" max="22" v-model.number="fontSize">
+        <span style="font-family: var(--font-mono); width: 35px;">{{ fontSize }}px</span>
       </div>
     </div>
 
-    <!-- 小白友好：可视化快捷插入工具栏 -->
+    <!-- 可视化动作按钮条 -->
     <div class="panel-section">
       <div class="section-title">
-        <span>快捷动作 (点击填空插入)</span>
+        <span>快捷动作 (点击插入)</span>
       </div>
       <div class="action-toolbar">
         <button class="btn btn-primary" @click="openModal('floor')">+ 添加新楼层</button>
         <button class="btn" @click="openModal('system')">+ 插入系统提示</button>
+        <button class="btn" @click="quoteLatestFloor" title="自动抓取上一楼作者和发言插入引用">💬 引用上一楼</button>
         <button class="btn" @click="insertTag('||这里是剧透黑幕||')">黑幕刮刮乐</button>
-        <button class="btn" @click="insertTag('> 引用某某：内容\n')">引用上一楼</button>
       </div>
     </div>
 
-    <!-- 硬核文手：脚本打字源码编辑区 -->
+    <!-- 源码文本框 -->
     <div class="editor-container">
       <div class="section-title">
-        <span>脚本源文本 (支持直接手动输入修改)</span>
+        <span>脚本源文本</span>
         <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;" @click="resetTemplate">重置模板</button>
       </div>
       <textarea
         ref="sourceTextarea"
         class="source-editor"
         v-model="rawScript"
-        placeholder="在这里自由打字或粘贴你的论坛脚本..."
+        placeholder="自由打字或粘贴论坛脚本..."
       ></textarea>
     </div>
   </aside>
 
-  <!-- 右侧：所见即所得渲染区 -->
+  <!-- 右侧所见即所得渲染区 -->
   <main class="panel-right">
     <header class="preview-header">
       <span class="watermark-badge">PREVIEW WORKSPACE · BY SHADOW</span>
@@ -443,7 +486,7 @@
     </header>
 
     <div class="preview-scroll">
-      <!-- 论坛整卡主体 (将被 html2canvas 截取) -->
+      <!-- 论坛整卡主体 (将被 html2canvas 截取，无水印) -->
       <div
         id="forum-export-target"
         class="forum-container"
@@ -459,7 +502,7 @@
           <h1 class="forum-title">{{ meta.title || '无标题帖子' }}</h1>
         </div>
 
-        <!-- 楼层与系统提示动态渲染列表 -->
+        <!-- 楼层与系统提示列表 -->
         <div v-for="(item, idx) in parsedItems" :key="idx">
           <!-- 系统提示条 -->
           <div v-if="item.type === 'system'" class="forum-sys-notice" :class="item.subType">
@@ -468,29 +511,39 @@
 
           <!-- 普通楼层帖子 -->
           <div v-else-if="item.type === 'floor'" class="forum-post">
-            <div class="post-avatar">
-              <img v-if="item.avatar" :src="item.avatar" alt="avatar">
-              <span v-else>{{ (item.author || '匿')[0] }}</span>
+            <!-- 头像区域 (支持点击上传更换) -->
+            <div class="post-avatar-wrapper" @click="triggerUploadAvatar(item.floor, item.author)" title="点击更换该楼层头像">
+              <div class="post-avatar">
+                <img v-if="getAvatar(item.floor, item.author)" :src="getAvatar(item.floor, item.author)" alt="avatar">
+                <span v-else>{{ (item.author || '匿')[0] }}</span>
+              </div>
+              <div class="avatar-upload-overlay">换头像</div>
             </div>
+
             <div class="post-content-wrap">
               <div class="post-user-row">
                 <span class="post-username">{{ item.author || '匿名网友' }}</span>
                 <span v-if="item.isLz" class="badge-lz">楼主</span>
                 <span v-if="item.badge" class="badge-custom">{{ item.badge }}</span>
-                <span class="post-floor">{{ item.floor }}</span>
+                
+                <div class="post-floor-actions">
+                  <button class="btn-quote-inline" @click="quoteSpecificFloor(item)" title="引用此楼">💬 引用</button>
+                  <span class="post-floor">{{ item.floor }}</span>
+                </div>
               </div>
+
               <div class="post-meta-sub">
                 <span v-if="item.ip">IP: {{ item.ip }}</span>
                 <span v-if="item.device">来自 {{ item.device }}</span>
                 <span>{{ item.time || '刚刚' }}</span>
               </div>
 
-              <!-- 引用块 -->
+              <!-- 引用块 (修复多行与特殊格式) -->
               <div v-if="item.quote" class="quote-box">
                 {{ item.quote }}
               </div>
 
-              <!-- 楼层正文 (包含刮刮乐黑幕解析) -->
+              <!-- 楼层正文 (黑幕解析) -->
               <div class="post-body" v-html="formatBody(item.body)"></div>
 
               <!-- 楼中楼小评论 -->
@@ -504,10 +557,6 @@
           </div>
         </div>
 
-        <!-- 论坛底部水印声明 -->
-        <div class="forum-watermark-footer">
-          快捷排版网站 —— by shadow
-        </div>
       </div>
     </div>
   </main>
@@ -521,20 +570,20 @@
       </div>
       <div class="form-group">
         <label>昵称 / 马甲</label>
-        <input type="text" v-model="newFloor.author" placeholder="例如：酸菜鱼 (加 楼主 二字自动变楼主)">
+        <input type="text" v-model="newFloor.author" placeholder="例如：酸菜鱼 (含 楼主 二字自动变楼主)">
       </div>
       <div class="form-group" style="display: flex; gap: 0.5rem;">
         <div style="flex: 1;">
-          <label>IP 属地 (文手造梗)</label>
-          <input type="text" v-model="newFloor.ip" placeholder="例如：罗马 / 楼主床底">
+          <label>IP 属地</label>
+          <input type="text" v-model="newFloor.ip" placeholder="例如：江苏 / 楼主床底">
         </div>
         <div style="flex: 1;">
           <label>自定义徽章 (可选)</label>
-          <input type="text" v-model="newFloor.badge" placeholder="例如：管理员 / 大V">
+          <input type="text" v-model="newFloor.badge" placeholder="例如：管理员">
         </div>
       </div>
       <div class="form-group">
-        <label>正文内容 (支持直接打字)</label>
+        <label>正文内容</label>
         <textarea rows="4" v-model="newFloor.body" placeholder="说点什么吧..."></textarea>
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
@@ -560,7 +609,7 @@
       </div>
       <div class="form-group">
         <label>提示文字</label>
-        <input type="text" v-model="newSys.content" placeholder="例如：【系统提示：该楼层已被管理员抽除】">
+        <input type="text" v-model="newSys.content" placeholder="例如：【系统提示：该楼已被封禁】">
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
         <button class="btn" @click="activeModal = null">取消</button>
@@ -574,7 +623,6 @@
 <script>
   const { createApp } = Vue;
 
-  // 默认预设的一段示范小说脚本
   const DEFAULT_SCRIPT = `---
 board: 树洞情感区
 title: 【求助】我室友好像发现了我的小号，现在装作不知情怎么办？
@@ -599,7 +647,7 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
 :::
 
 ::: 3L @纯路人 [IP: 北京]
-> 引用 1L @酸菜鱼：我现在慌得不行，假装去喝水……
+> 引用 1L @酸菜鱼(楼主)：我现在慌得不行，假装去喝水，他很平静地跟我说了晚安……
 直接坦白吧楼主，坦白从宽。
 ---
 [sub] @酸菜鱼: 不要啊啊啊！直接坦白会社死的！
@@ -620,18 +668,25 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
         rawScript: localStorage.getItem('shadow_forum_draft') || DEFAULT_SCRIPT,
         isExporting: false,
         activeModal: null,
-        // 表单弹窗临时数据
         newFloor: { author: '', ip: '本地', badge: '', body: '' },
-        newSys: { type: 'normal', content: '【系统提示：该楼已被封禁】' }
+        newSys: { type: 'normal', content: '【系统提示：该楼已被封禁】' },
+        // 本地头像缓存池 (键为 floor 或 author)
+        avatarMap: JSON.parse(localStorage.getItem('shadow_avatar_map') || '{}'),
+        uploadTargetKey: null // 正在上传头像的目标 key
       }
     },
     watch: {
       rawScript(newVal) {
         localStorage.setItem('shadow_forum_draft', newVal);
+      },
+      avatarMap: {
+        deep: true,
+        handler(val) {
+          localStorage.setItem('shadow_avatar_map', JSON.stringify(val));
+        }
       }
     },
     computed: {
-      // 解析全局 Front-matter 标题和板块
       meta() {
         const titleMatch = this.rawScript.match(/title:\s*(.+)/);
         const boardMatch = this.rawScript.match(/board:\s*(.+)/);
@@ -640,7 +695,6 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
           board: boardMatch ? boardMatch[1].trim() : '闲聊讨论'
         };
       },
-      // 解析所有楼层与系统提示
       parsedItems() {
         const items = [];
         const blocks = this.rawScript.split(/:::\s*/);
@@ -649,11 +703,11 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
           const trimmed = block.trim();
           if (!trimmed || trimmed.startsWith('---')) return;
 
-          // 匹配系统提示: sys 或 sys(warn)
+          // 系统提示
           if (trimmed.startsWith('sys')) {
             const isWarn = trimmed.startsWith('sys(warn)');
             const lines = trimmed.split('\n');
-            lines.shift(); // 移除首行 sys
+            lines.shift();
             const content = lines.join('\n').replace(/:::$/, '').trim();
             items.push({
               type: 'system',
@@ -663,7 +717,7 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
             return;
           }
 
-          // 匹配楼层: 1L @作者 [IP: xx] [Badge: xx] (来自 设备)
+          // 楼层解析
           const firstLineEnd = trimmed.indexOf('\n');
           const headerLine = firstLineEnd !== -1 ? trimmed.slice(0, firstLineEnd) : trimmed;
           const bodyContent = firstLineEnd !== -1 ? trimmed.slice(firstLineEnd + 1).replace(/:::$/, '').trim() : '';
@@ -675,18 +729,20 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
           const deviceMatch = headerLine.match(/\(来自\s*([^\)]+)\)/);
 
           const author = authorMatch ? authorMatch[1] : '匿名网友';
-          const isLz = author.includes('楼主') || (floorMatch && floorMatch[1] === '1L');
+          const floor = floorMatch ? floorMatch[1] : `${items.filter(i=>i.type==='floor').length + 1}L`;
+          const isLz = author.includes('楼主') || floor === '1L';
 
-          // 处理引用和楼中楼
+          // 宽容解析引用 > 某某内容
           let quote = null;
           let cleanBody = bodyContent;
           const subComments = [];
 
-          // 提取引用 >
-          const quoteMatch = cleanBody.match(/^>\s*(.+)\n/);
+          // 匹配以 > 开头的引用行
+          const quoteRegex = />\s*(.+?)(?:\n|$)/;
+          const quoteMatch = cleanBody.match(quoteRegex);
           if (quoteMatch) {
-            quote = quoteMatch[1];
-            cleanBody = cleanBody.replace(quoteMatch[0], '');
+            quote = quoteMatch[1].trim();
+            cleanBody = cleanBody.replace(quoteMatch[0], '').trim();
           }
 
           // 提取楼中楼 [sub]
@@ -705,7 +761,7 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
 
           items.push({
             type: 'floor',
-            floor: floorMatch ? floorMatch[1] : `${items.length + 1}L`,
+            floor: floor,
             author: author,
             isLz: isLz,
             badge: badgeMatch ? badgeMatch[1] : '',
@@ -721,15 +777,35 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
       }
     },
     methods: {
-      // 黑幕刮刮乐效果转化
       formatBody(text) {
         if (!text) return '';
         return text.replace(/\|\|(.*?)\|\|/g, '<span class="spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>');
       },
+      // 获取头像：优先楼层指定，其次角色昵称指定
+      getAvatar(floor, author) {
+        return this.avatarMap[floor] || this.avatarMap[author] || null;
+      },
+      // 触发上传头像
+      triggerUploadAvatar(floor, author) {
+        this.uploadTargetKey = floor; // 绑定到该楼层
+        this.$refs.avatarFileInput.click();
+      },
+      handleAvatarFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (this.uploadTargetKey) {
+            this.avatarMap[this.uploadTargetKey] = event.target.result;
+          }
+          // 清空 input 方便重复选择同一图片
+          e.target.value = '';
+        };
+        reader.readAsDataURL(file);
+      },
       openModal(type) {
         this.activeModal = type;
       },
-      // 确认通过弹窗追加楼层代码
       confirmAddFloor() {
         const floorNum = (this.parsedItems.filter(i => i.type === 'floor').length + 1) + 'L';
         const badgeStr = this.newFloor.badge ? ` [Badge: ${this.newFloor.badge}]` : '';
@@ -740,31 +816,56 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
         this.activeModal = null;
         this.newFloor = { author: '', ip: '本地', badge: '', body: '' };
       },
-      // 确认通过弹窗追加系统提示
       confirmAddSys() {
         const sysTag = this.newSys.type === 'warn' ? 'sys(warn)' : 'sys';
         const appendScript = `\n::: ${sysTag}\n${this.newSys.content}\n:::\n`;
         this.rawScript += appendScript;
         this.activeModal = null;
       },
-      // 插入指定快捷符号
+      // 智能引用“上一楼”
+      quoteLatestFloor() {
+        const floors = this.parsedItems.filter(i => i.type === 'floor');
+        if (!floors.length) {
+          alert('当前还没有楼层可以引用');
+          return;
+        }
+        const lastFloor = floors[floors.length - 1];
+        this.quoteSpecificFloor(lastFloor);
+      },
+      // 引用指定楼层
+      quoteSpecificFloor(floorItem) {
+        // 截取前30个字作为摘要
+        const snippet = floorItem.body ? floorItem.body.replace(/\n/g, ' ').slice(0, 30) + '……' : '……';
+        const quoteText = `> 引用 ${floorItem.floor} @${floorItem.author}：${snippet}\n`;
+        
+        // 追加新楼层并带上引用
+        const nextFloorNum = (this.parsedItems.filter(i => i.type === 'floor').length + 1) + 'L';
+        const newFloorScript = `\n::: ${nextFloorNum} @路人网友\n${quoteText}说得对！\n:::\n`;
+        this.rawScript += newFloorScript;
+
+        // 滚动到底部
+        this.$nextTick(() => {
+          const ta = this.$refs.sourceTextarea;
+          if (ta) ta.scrollTop = ta.scrollHeight;
+        });
+      },
       insertTag(tag) {
-        this.rawScript += `\n${tag}`;
+        this.rawScript += `\n${tag}\n`;
       },
       resetTemplate() {
-        if (confirm('确认恢复示范默认模板吗？当前编辑的内容将被覆盖。')) {
+        if (confirm('确认恢复示范模板吗？当前编辑的内容将被覆盖。')) {
           this.rawScript = DEFAULT_SCRIPT;
         }
       },
-      // 导出高清长图
+      // 导出纯净高清长图 (无水印)
       exportImage() {
         this.isExporting = true;
         const target = document.getElementById('forum-export-target');
 
         html2canvas(target, {
-          scale: 2, // 2倍超清抗锯齿
+          scale: 2, // 2倍抗锯齿高清
           useCORS: true,
-          backgroundColor: null
+          backgroundColor: '#ffffff'
         }).then(canvas => {
           const link = document.createElement('a');
           link.download = `论坛排版_${Date.now()}.png`;
@@ -782,3 +883,4 @@ title: 【求助】我室友好像发现了我的小号，现在装作不知情�
 </script>
 </body>
 </html>
+
